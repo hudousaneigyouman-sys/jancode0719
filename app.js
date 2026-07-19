@@ -1,0 +1,84 @@
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #0f172a;
+  background: #f1f5f9;
+  --primary: #0f766e;
+  --primary-dark: #115e59;
+  --line: #cbd5e1;
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding-bottom: 92px; }
+button, input, textarea { font: inherit; }
+button { cursor: pointer; }
+.app-header {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18px 16px; color: white; background: #0f172a;
+}
+.app-header h1 { margin: 0; font-size: 1.4rem; }
+.app-header p { margin: 4px 0 0; font-size: .82rem; opacity: .82; }
+main { max-width: 760px; margin: 0 auto; padding: 14px; }
+.card { background: white; border-radius: 18px; padding: 16px; margin-bottom: 14px; box-shadow: 0 8px 24px rgba(15,23,42,.06); }
+label { display: block; margin: 12px 0 6px; font-weight: 700; }
+label strong { color: #b91c1c; font-size: .75rem; margin-left: 6px; }
+input, textarea {
+  width: 100%; border: 1px solid var(--line); border-radius: 12px;
+  padding: 13px 14px; background: white;
+}
+input:focus, textarea:focus { outline: 3px solid rgba(15,118,110,.18); border-color: var(--primary); }
+.search-actions, .dialog-actions { display: flex; gap: 10px; margin-top: 12px; }
+.section-title-row { display:flex; justify-content:space-between; align-items:center; }
+h2 { margin: 0; font-size: 1.1rem; }
+.badge { background:#e2e8f0; padding:5px 9px; border-radius:999px; font-size:.8rem; }
+.item-list { display: grid; gap: 9px; margin-top: 12px; }
+.item {
+  display:flex; justify-content:space-between; gap:12px; align-items:center;
+  width:100%; text-align:left; border:1px solid #e2e8f0; background:white;
+  border-radius:14px; padding:13px;
+}
+.item:hover { border-color: var(--primary); background:#f0fdfa; }
+.item-name { font-weight:800; margin-bottom:4px; }
+.item-code { color:#475569; font-size:.86rem; word-break:break-all; }
+.item-arrow { font-size:1.35rem; color:#64748b; }
+.empty { text-align:center; color:#64748b; padding:28px 10px; }
+.primary, .secondary, .ghost, .danger {
+  border:0; border-radius:12px; padding:12px 14px; font-weight:800;
+}
+.primary { background:var(--primary); color:white; }
+.primary:hover { background:var(--primary-dark); }
+.secondary { background:#ccfbf1; color:#115e59; }
+.ghost { background:#e2e8f0; color:#1e293b; }
+.danger { background:#fee2e2; color:#991b1b; }
+.small { padding:9px 11px; font-size:.82rem; }
+.full { width:100%; margin-top:12px; }
+.fab {
+  position:fixed; right:18px; bottom:90px; width:58px; height:58px;
+  border-radius:50%; border:0; background:var(--primary); color:white;
+  font-size:2rem; box-shadow:0 12px 28px rgba(15,118,110,.35); z-index:12;
+}
+dialog { border:0; border-radius:20px; padding:0; width:min(94vw,560px); box-shadow:0 24px 60px rgba(0,0,0,.28); }
+dialog::backdrop { background:rgba(15,23,42,.58); }
+.dialog-card { padding:18px; }
+.dialog-card.wide { width:100%; }
+.dialog-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.icon-btn { border:0; background:#e2e8f0; width:38px; height:38px; border-radius:50%; font-size:1.4rem; }
+details { margin-top:14px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:12px; }
+summary { font-weight:800; cursor:pointer; }
+.error { color:#b91c1c; min-height:1.2em; }
+.hint, .status { color:#475569; font-size:.9rem; }
+.bulk-rows { display:grid; gap:10px; margin-top:14px; max-height:45vh; overflow:auto; }
+.bulk-row { display:grid; grid-template-columns:auto 1fr 1.4fr; gap:8px; align-items:center; padding:9px; border:1px solid #e2e8f0; border-radius:12px; }
+.bulk-row.warn { border-color:#f59e0b; background:#fffbeb; }
+.split { justify-content:space-between; }
+.bottom-nav {
+  position:fixed; left:0; right:0; bottom:0; display:grid; grid-template-columns:repeat(3,1fr);
+  background:white; border-top:1px solid #cbd5e1; padding:8px max(8px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)); z-index:11;
+}
+.bottom-nav button { border:0; background:white; padding:10px 5px; font-weight:800; color:#64748b; }
+.bottom-nav button.active { color:var(--primary); }
+@media (max-width:520px) {
+  .bulk-row { grid-template-columns:auto 1fr; }
+  .bulk-row input:last-child { grid-column:2; }
+  .dialog-actions { flex-direction:column; }
+  .dialog-actions.split { flex-direction:row; }
+}
