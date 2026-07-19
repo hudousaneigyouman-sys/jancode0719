@@ -7,6 +7,7 @@
   <title>コードメモ</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/zxing-browser.min.js" defer></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js" defer></script>
   <script src="app.js" defer></script>
 </head>
@@ -23,6 +24,7 @@
     <section class="search-panel card">
       <label for="searchInput">商品を検索</label>
       <input id="searchInput" type="search" placeholder="1文字入力すると候補を表示" autocomplete="off" />
+      <button id="scanSearchBtn" class="secondary full" type="button">📷 バーコードで検索</button>
       <div class="search-actions">
         <button id="showAllBtn" class="ghost">すべて表示</button>
         <button id="clearSearchBtn" class="ghost">検索を消す</button>
@@ -49,7 +51,10 @@
       </div>
 
       <label for="codeInput">コード <strong>必須</strong></label>
-      <input id="codeInput" required placeholder="JANコード・管理コードなど" inputmode="text" />
+      <div class="input-with-button">
+        <input id="codeInput" required placeholder="JANコード・管理コードなど" inputmode="text" />
+        <button type="button" id="scanCodeBtn" class="secondary">📷 読取</button>
+      </div>
 
       <label for="nameInput">商品名 <strong>必須</strong></label>
       <input id="nameInput" required placeholder="自由に分かりやすい名前を入力" />
@@ -101,6 +106,23 @@
       <div class="dialog-actions split">
         <button id="deleteBtn" class="danger">削除</button>
         <button id="updateBtn" class="primary">変更を保存</button>
+      </div>
+    </div>
+  </dialog>
+
+
+  <dialog id="scannerDialog">
+    <div class="dialog-card wide scanner-card">
+      <div class="dialog-head">
+        <h2>バーコードを読み取る</h2>
+        <button type="button" id="closeScannerBtn" class="icon-btn" aria-label="閉じる">×</button>
+      </div>
+      <p class="hint">バーコード全体が枠内に入るように、少し離して映してください。</p>
+      <div class="scanner-frame"><video id="scannerVideo" playsinline muted></video><div class="scan-line"></div></div>
+      <p id="scannerStatus" class="status" role="status">カメラを起動します…</p>
+      <div class="dialog-actions">
+        <label class="ghost file-label">写真から読む<input id="barcodePhotoInput" type="file" accept="image/*" capture="environment"></label>
+        <button type="button" id="retryScannerBtn" class="primary">カメラを再起動</button>
       </div>
     </div>
   </dialog>

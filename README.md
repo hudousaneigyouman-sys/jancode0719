@@ -1,4 +1,8 @@
-const CACHE='code-memo-v1';
-const FILES=['./','./index.html','./styles.css','./app.js','./manifest.json'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES))));
-self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));
+# コードメモ v2
+
+AQUOS sense4 liteなど、標準バーコードAPIに対応していない端末向けの互換読み取り機能を追加しました。
+
+GitHubへは、このフォルダ内のファイルをすべてリポジトリ直下へアップロードしてください。
+既存ファイルは「Replace files（置き換え）」で更新します。
+
+更新後、GitHub Pagesの公開処理が完了してから、Chromeでページを再読み込みしてください。
