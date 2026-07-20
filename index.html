@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#12324a">
-  <title>コードメモ バックアップ対応版</title>
+  <title>コードメモ 並び替え対応版</title>
   <style>
 :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;color:#17212b;background:#eef3f7;--navy:#12324a;--blue:#176b87;--blue-dark:#11536a;--line:#b9c8d3;--soft:#e8f1f5;--danger:#b42318}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html{font-size:16px}body{margin:0;padding-bottom:92px;background:#eef3f7}button,input,textarea{font:inherit}button{touch-action:manipulation}.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;background:var(--navy);color:#fff;box-shadow:0 3px 12px rgba(0,0,0,.18)}.topbar h1{margin:0;font-size:1.45rem}.topbar p{margin:4px 0 0;font-size:.86rem;opacity:.9}.page{max-width:760px;margin:0 auto;padding:14px}.panel{background:#fff;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 4px 16px rgba(18,50,74,.09)}h2{font-size:1.18rem;margin:0 0 14px}.section-head{display:flex;align-items:center;justify-content:space-between}.section-head h2{margin:0}label{display:block;margin:16px 0 7px;font-size:1rem;font-weight:800}.required{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:999px;background:#fee4e2;color:#b42318;font-size:.72rem}.big-input{display:block;width:100%;min-height:58px;border:2px solid var(--line);border-radius:14px;background:#fff;padding:14px 15px;font-size:18px;color:#17212b}.code-input{font-size:21px;letter-spacing:.04em}.big-input:focus{outline:4px solid rgba(23,107,135,.16);border-color:var(--blue)}textarea.big-input{min-height:100px;resize:vertical}.btn{min-height:54px;border:0;border-radius:14px;padding:13px 16px;font-weight:800;font-size:17px}.btn:active{transform:translateY(1px);filter:brightness(.95)}.btn-primary{background:var(--blue);color:#fff}.btn-primary:active{background:var(--blue-dark)}.btn-sub{background:#e3edf2;color:#17394b}.btn-danger{background:#fee4e2;color:var(--danger)}.btn-wide{width:100%;margin-top:12px}.compact{min-height:44px;padding:9px 12px;font-size:.86rem;white-space:nowrap}.top-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}.backup-note{margin:10px 0 0;color:#526778;font-size:.88rem;line-height:1.5}.backup-box{border:2px solid #d6e1e8;border-radius:15px;padding:14px;background:#f7fafc;margin-top:12px}.backup-time{font-weight:800;color:#29485a}.btn-backup{background:#f2e8cf;color:#5f4513}.two-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.notice{margin:9px 2px 0;color:#516575;font-size:.9rem;line-height:1.55}.error{min-height:1.35em;margin:12px 0;color:#b42318;font-weight:700}.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#dfe9ef;color:#29485a;font-weight:800}.item-list{display:grid;gap:12px;margin-top:15px}.item-card{border:2px solid #d6e1e8;border-radius:16px;background:#fff;overflow:hidden}.item-content{display:block;width:100%;border:0;background:#fff;text-align:left;padding:16px}.item-name{display:block;font-size:18px;font-weight:900;line-height:1.35}.item-code{display:block;margin-top:7px;color:#526778;font-size:16px;word-break:break-all}.item-edit{display:block;width:100%;min-height:49px;border:0;border-top:1px solid #d6e1e8;background:#eaf3f7;color:#15506d;font-weight:900;font-size:16px}.empty{text-align:center;color:#687b89;padding:34px 8px}.add-fixed{position:fixed;z-index:30;left:14px;right:14px;bottom:14px;max-width:732px;margin:0 auto;min-height:62px;border:0;border-radius:18px;background:var(--blue);color:#fff;font-size:19px;font-weight:900;box-shadow:0 10px 26px rgba(23,107,135,.35)}.overlay{position:fixed;inset:0;z-index:100;background:rgba(8,25,38,.62);overflow-y:auto;padding:14px}.overlay[hidden]{display:none}.sheet{width:min(100%,620px);margin:10px auto 30px;background:#fff;border-radius:20px;padding:20px;box-shadow:0 18px 55px rgba(0,0,0,.35)}.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.sheet-head h2{margin:0}.close-btn{min-height:44px;border:0;border-radius:12px;background:#e4edf2;color:#26485a;padding:8px 14px;font-weight:800}.confirm-label{margin:18px 0 7px;color:#526778;font-weight:800}.confirm-box{border:2px solid #b9c8d3;border-radius:14px;background:#f6f9fb;padding:16px;font-size:19px;font-weight:900;word-break:break-all}.confirm-code{font-size:24px;letter-spacing:.05em}.toast{position:fixed;z-index:200;left:50%;bottom:92px;transform:translateX(-50%);width:min(90%,420px);border-radius:13px;background:#152f41;color:#fff;padding:13px 16px;text-align:center;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.28)}@media(max-width:420px){.page{padding:10px}.panel{padding:15px;border-radius:15px}.topbar{padding:13px}.topbar h1{font-size:1.3rem}.btn{font-size:16px}.two-buttons{grid-template-columns:1fr}.sheet{padding:17px}.big-input{font-size:17px;min-height:56px}.code-input{font-size:20px}}
 
@@ -36,6 +36,7 @@
         <h2 id="listTitle">登録一覧</h2>
         <span id="countBadge" class="badge">0件</span>
       </div>
+      <p class="notice">英字の商品を先にABC順、その後に日本語を五十音順で表示します。同じ名前では数字の小さい順です。</p>
       <div id="itemList" class="item-list" aria-live="polite"></div>
       <p id="emptyMessage" class="empty">まだ商品が登録されていません。</p>
     </section>
@@ -57,6 +58,10 @@
       <label for="nameInput">商品名 <span class="required">必須</span></label>
       <input id="nameInput" class="big-input" type="text" placeholder="分かりやすい名前を入力">
 
+      <label for="readingInput">表示順用の読み（任意）</label>
+      <input id="readingInput" class="big-input" type="text" inputmode="kana" placeholder="例：でんきけとる">
+      <p class="notice">商品名が漢字の場合などに、ひらがなで入力すると五十音順に並びます。空欄でも登録できます。</p>
+
       <button id="toggleMemoBtn" class="btn btn-sub btn-wide" type="button">任意のメモを開く</button>
       <div id="memoArea" hidden>
         <label for="memoInput">メモ</label>
@@ -77,6 +82,10 @@
       <div id="confirmCode" class="confirm-box confirm-code"></div>
       <p class="confirm-label">商品名</p>
       <div id="confirmName" class="confirm-box"></div>
+      <div id="confirmReadingArea" hidden>
+        <p class="confirm-label">表示順用の読み</p>
+        <div id="confirmReading" class="confirm-box"></div>
+      </div>
       <p class="notice">表示を確認し、正しければ登録してください。</p>
       <div class="two-buttons">
         <button id="backToEditBtn" class="btn btn-sub" type="button">戻って修正</button>
@@ -95,6 +104,9 @@
       <input id="editCode" class="big-input code-input" type="text" inputmode="numeric">
       <label for="editName">商品名 <span class="required">必須</span></label>
       <input id="editName" class="big-input" type="text">
+      <label for="editReading">表示順用の読み（任意）</label>
+      <input id="editReading" class="big-input" type="text" inputmode="kana" placeholder="漢字の商品名は、ひらがなを入力">
+      <p class="notice">英字は自動でABC順です。漢字などは読みを入れると五十音順になります。</p>
       <label for="editMemo">メモ</label>
       <textarea id="editMemo" class="big-input" rows="3"></textarea>
       <p id="editError" class="error" role="alert"></p>
@@ -164,6 +176,50 @@
       return String.fromCharCode(c.charCodeAt(0) - 96);
     });
   }
+  function normalizeSortText(value) {
+    return normalize(value).replace(/^[\s　]+|[\s　]+$/g, '');
+  }
+  function isAlphabetStart(value) {
+    return /^[a-z]/.test(normalizeSortText(value));
+  }
+  function naturalParts(value) {
+    return normalizeSortText(value).match(/\d+|\D+/g) || [''];
+  }
+  function naturalCompare(a, b) {
+    var aa = naturalParts(a), bb = naturalParts(b), len = Math.max(aa.length, bb.length);
+    for (var i = 0; i < len; i++) {
+      if (i >= aa.length) return -1;
+      if (i >= bb.length) return 1;
+      var x = aa[i], y = bb[i];
+      var xn = /^\d+$/.test(x), yn = /^\d+$/.test(y);
+      if (xn && yn) {
+        var nx = parseInt(x, 10), ny = parseInt(y, 10);
+        if (nx !== ny) return nx - ny;
+        if (x.length !== y.length) return x.length - y.length;
+      } else if (x !== y) {
+        try {
+          var cmp = x.localeCompare(y, 'ja', { sensitivity: 'base' });
+          if (cmp) return cmp;
+        } catch (e) {
+          if (x < y) return -1;
+          if (x > y) return 1;
+        }
+      }
+    }
+    return 0;
+  }
+  function itemSortKey(item) {
+    return trim(item.reading || item.sortReading || '') || trim(item.name || '');
+  }
+  function compareItems(a, b) {
+    var aAlpha = isAlphabetStart(a.name), bAlpha = isAlphabetStart(b.name);
+    if (aAlpha !== bAlpha) return aAlpha ? -1 : 1;
+    var primary = naturalCompare(itemSortKey(a), itemSortKey(b));
+    if (primary) return primary;
+    var byName = naturalCompare(a.name, b.name);
+    if (byName) return byName;
+    return naturalCompare(a.code, b.code);
+  }
   function load() {
     try {
       var data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -177,7 +233,7 @@
     } catch (e) { showToast('保存できませんでした。Chromeの保存設定を確認してください。'); }
   }
   function makeBackupData() {
-    return { app: 'code-memo', version: 1, savedAt: new Date().toISOString(), items: items };
+    return { app: 'code-memo', version: 2, savedAt: new Date().toISOString(), items: items };
   }
   function createLocalBackup() {
     try { localStorage.setItem(BACKUP_KEY, JSON.stringify(makeBackupData())); } catch (e) {}
@@ -231,9 +287,9 @@
   function render() {
     var q = normalize(activeQuery);
     var filtered = items.filter(function (item) {
-      return !q || normalize(item.name).indexOf(q) !== -1 || normalize(item.code).indexOf(q) !== -1;
+      return !q || normalize(item.name).indexOf(q) !== -1 || normalize(item.code).indexOf(q) !== -1 || normalize(item.reading || '').indexOf(q) !== -1;
     });
-    filtered.sort(function (a, b) { return String(a.name).localeCompare(String(b.name), 'ja'); });
+    filtered.sort(compareItems);
 
     el('listTitle').textContent = q ? '「' + activeQuery + '」の検索結果' : '登録一覧';
     el('countBadge').textContent = filtered.length + '件';
@@ -255,6 +311,12 @@
       code.textContent = item.code;
       content.appendChild(name);
       content.appendChild(code);
+      if (item.reading) {
+        var reading = document.createElement('span');
+        reading.className = 'item-code';
+        reading.textContent = '表示順：' + item.reading;
+        content.appendChild(reading);
+      }
       content.onclick = function () { openEdit(item.id); };
       var edit = document.createElement('button');
       edit.type = 'button';
@@ -284,6 +346,7 @@
   function resetAdd() {
     el('codeInput').value = '';
     el('nameInput').value = '';
+    el('readingInput').value = '';
     el('memoInput').value = '';
     el('memoArea').hidden = true;
     el('toggleMemoBtn').textContent = '任意のメモを開く';
@@ -292,6 +355,7 @@
   function prepareConfirmation() {
     var code = trim(el('codeInput').value);
     var name = trim(el('nameInput').value);
+    var reading = trim(el('readingInput').value);
     var memo = trim(el('memoInput').value);
     el('formError').textContent = '';
     if (!code || !name) {
@@ -302,15 +366,17 @@
       el('formError').textContent = '同じコードがすでに登録されています。';
       return;
     }
-    pendingItem = { code: code, name: name, memo: memo };
+    pendingItem = { code: code, name: name, reading: reading, memo: memo };
     el('confirmCode').textContent = code;
     el('confirmName').textContent = name;
+    el('confirmReading').textContent = reading;
+    el('confirmReadingArea').hidden = !reading;
     hidePanel('addPanel');
     showPanel('confirmPanel');
   }
   function registerPending() {
     if (!pendingItem) return;
-    items.push({ id: makeId(), code: pendingItem.code, name: pendingItem.name, memo: pendingItem.memo, createdAt: new Date().toISOString() });
+    items.push({ id: makeId(), code: pendingItem.code, name: pendingItem.name, reading: pendingItem.reading || '', memo: pendingItem.memo, createdAt: new Date().toISOString() });
     save();
     pendingItem = null;
     hidePanel('confirmPanel');
@@ -329,6 +395,7 @@
     selectedId = id;
     el('editCode').value = item.code;
     el('editName').value = item.name;
+    el('editReading').value = item.reading || item.sortReading || '';
     el('editMemo').value = item.memo || '';
     el('editError').textContent = '';
     showPanel('editPanel');
@@ -349,6 +416,7 @@
     }
     item.code = code;
     item.name = name;
+    item.reading = trim(el('editReading').value);
     item.memo = trim(el('editMemo').value);
     item.updatedAt = new Date().toISOString();
     save();
@@ -389,11 +457,11 @@
     var cleaned = [];
     data.items.forEach(function (item) {
       if (item && trim(item.code) && trim(item.name)) {
-        cleaned.push({ id: item.id || makeId(), code: trim(item.code), name: trim(item.name), memo: trim(item.memo || ''), createdAt: item.createdAt || new Date().toISOString(), updatedAt: item.updatedAt || '' });
+        cleaned.push({ id: item.id || makeId(), code: trim(item.code), name: trim(item.name), reading: trim(item.reading || item.sortReading || ''), memo: trim(item.memo || ''), createdAt: item.createdAt || new Date().toISOString(), updatedAt: item.updatedAt || '' });
       }
     });
     items = cleaned;
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); localStorage.setItem(BACKUP_KEY, JSON.stringify({app:'code-memo',version:1,savedAt:new Date().toISOString(),items:items})); } catch (e) {}
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); localStorage.setItem(BACKUP_KEY, JSON.stringify({app:'code-memo',version:2,savedAt:new Date().toISOString(),items:items})); } catch (e) {}
     activeQuery = '';
     el('searchInput').value = '';
     render();
@@ -420,8 +488,8 @@
     reader.readAsText(file, 'utf-8');
   }
   function exportCsv() {
-    var rows = [['コード','商品名','メモ']];
-    items.forEach(function (item) { rows.push([item.code, item.name, item.memo || '']); });
+    var rows = [['コード','商品名','表示順用の読み','メモ']];
+    items.slice().sort(compareItems).forEach(function (item) { rows.push([item.code, item.name, item.reading || '', item.memo || '']); });
     function esc(value) { return '"' + String(value).replace(/"/g, '""') + '"'; }
     var csv = '\ufeff' + rows.map(function (row) { return row.map(esc).join(','); }).join('\r\n');
     var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
