@@ -1,246 +1,107 @@
-const STORAGE_KEY = 'code-memo-items-v1';
-const $ = id => document.getElementById(id);
-const normalize = (text = '') => text.normalize('NFKC').toLowerCase().replace(/[ァ-ン]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
-const escapeCsv = (v = '') => `"${String(v).replaceAll('"', '""')}"`;
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#12324a">
+  <title>コードメモ</title>
+  <link rel="stylesheet" href="styles.css?v=6">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>コードメモ</h1>
+      <p>番号と商品名をかんたん登録</p>
+    </div>
+    <button id="exportBtn" class="btn btn-sub compact" type="button">CSV保存</button>
+  </header>
 
-let items = loadItems();
-let selectedId = null;
-let activeSearchQuery = '';
-let pendingItem = null;
-let recognition = null;
-let isListening = false;
+  <main class="page">
+    <section id="searchSection" class="panel">
+      <h2>商品を検索</h2>
+      <label for="searchInput">商品名またはコード</label>
+      <input id="searchInput" class="big-input" type="search" placeholder="1文字以上入力" autocomplete="off">
+      <button id="searchBtn" class="btn btn-primary btn-wide" type="button">検索する</button>
+      <div class="two-buttons">
+        <button id="showAllBtn" class="btn btn-sub" type="button">すべて表示</button>
+        <button id="clearSearchBtn" class="btn btn-sub" type="button">入力を消す</button>
+      </div>
+    </section>
 
-function loadItems() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
-  catch { return []; }
-}
-function saveItems() { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
-function newId() { return crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2); }
-function isDuplicate(code, excludeId = null) {
-  return items.some(x => normalize(x.code) === normalize(code) && x.id !== excludeId);
-}
+    <section id="listSection" class="panel">
+      <div class="section-head">
+        <h2 id="listTitle">登録一覧</h2>
+        <span id="countBadge" class="badge">0件</span>
+      </div>
+      <div id="itemList" class="item-list" aria-live="polite"></div>
+      <p id="emptyMessage" class="empty">まだ商品が登録されていません。</p>
+    </section>
+  </main>
 
-function render() {
-  const q = normalize(activeSearchQuery);
-  const filtered = items
-    .filter(x => !q || normalize(x.name).includes(q) || normalize(x.code).includes(q))
-    .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+  <button id="openAddBtn" class="add-fixed" type="button">＋ 新しく登録</button>
 
-  $('listTitle').textContent = q ? `「${activeSearchQuery}」の検索結果` : '登録一覧';
-  $('countBadge').textContent = `${filtered.length}件`;
-  $('itemList').innerHTML = '';
-  $('emptyMessage').hidden = filtered.length > 0;
-  $('emptyMessage').textContent = !items.length ? 'まだ商品が登録されていません。' : '該当する商品がありません。';
+  <div id="addPanel" class="overlay" hidden>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+      <div class="sheet-head">
+        <h2 id="addTitle">新しく登録</h2>
+        <button id="closeAddBtn" class="close-btn" type="button">閉じる</button>
+      </div>
 
-  filtered.forEach(item => {
-    const card = document.createElement('div');
-    card.className = 'item';
-    card.innerHTML = `
-      <button class="item-main" type="button">
-        <span class="item-name"></span>
-        <span class="item-code"></span>
-      </button>
-      <button class="edit-button" type="button">編集</button>`;
-    card.querySelector('.item-name').textContent = item.name;
-    card.querySelector('.item-code').textContent = item.code;
-    card.querySelector('.item-main').addEventListener('click', () => openEdit(item.id));
-    card.querySelector('.edit-button').addEventListener('click', () => openEdit(item.id));
-    $('itemList').appendChild(card);
-  });
-}
+      <label for="codeInput">コード <span class="required">必須</span></label>
+      <input id="codeInput" class="big-input code-input" type="text" inputmode="numeric" placeholder="番号を入力">
+      <button id="voiceCodeBtn" class="btn btn-voice btn-wide" type="button">🎤 マイクで番号を入力</button>
+      <p id="voiceStatus" class="notice">数字を1桁ずつ、ゆっくり話してください。</p>
 
-function executeSearch() {
-  activeSearchQuery = $('searchInput').value.trim();
-  render();
-}
+      <label for="nameInput">商品名 <span class="required">必須</span></label>
+      <input id="nameInput" class="big-input" type="text" placeholder="分かりやすい名前を入力">
 
-function openAdd() {
-  $('formError').textContent = '';
-  $('voiceStatus').textContent = '数字は1桁ずつ、ゆっくり話すと認識しやすくなります。';
-  $('addDialog').showModal();
-  setTimeout(() => $('codeInput').focus(), 100);
-}
+      <button id="toggleMemoBtn" class="btn btn-sub btn-wide" type="button">任意のメモを開く</button>
+      <div id="memoArea" hidden>
+        <label for="memoInput">メモ</label>
+        <textarea id="memoInput" class="big-input" rows="3" placeholder="購入先や用途など"></textarea>
+      </div>
 
-function prepareConfirmation() {
-  const code = $('codeInput').value.trim();
-  const name = $('nameInput').value.trim();
-  const memo = $('memoInput').value.trim();
-  $('formError').textContent = '';
-  if (!code || !name) {
-    $('formError').textContent = 'コードと商品名を入力してください。';
-    return;
-  }
-  if (isDuplicate(code)) {
-    $('formError').textContent = '同じコードがすでに登録されています。';
-    return;
-  }
-  pendingItem = { code, name, memo };
-  $('confirmCode').textContent = code;
-  $('confirmName').textContent = name;
-  $('addDialog').close();
-  $('confirmDialog').showModal();
-}
+      <p id="formError" class="error" role="alert"></p>
+      <button id="previewRegisterBtn" class="btn btn-primary btn-wide" type="button">内容を確認する</button>
+    </section>
+  </div>
 
-function registerPending() {
-  if (!pendingItem) return;
-  items.push({ id: newId(), ...pendingItem, createdAt: new Date().toISOString() });
-  saveItems();
-  render();
-  pendingItem = null;
-  $('confirmDialog').close();
-  $('addForm').reset();
-  alert('登録しました。');
-}
+  <div id="confirmPanel" class="overlay" hidden>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="sheet-head">
+        <h2 id="confirmTitle">登録内容を確認</h2>
+      </div>
+      <p class="confirm-label">コード</p>
+      <div id="confirmCode" class="confirm-box confirm-code"></div>
+      <p class="confirm-label">商品名</p>
+      <div id="confirmName" class="confirm-box"></div>
+      <p class="notice">表示を確認し、正しければ登録してください。</p>
+      <div class="two-buttons">
+        <button id="backToEditBtn" class="btn btn-sub" type="button">戻って修正</button>
+        <button id="confirmRegisterBtn" class="btn btn-primary" type="button">OK・登録</button>
+      </div>
+    </section>
+  </div>
 
-function backToEdit() {
-  $('confirmDialog').close();
-  $('addDialog').showModal();
-}
+  <div id="editPanel" class="overlay" hidden>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="sheet-head">
+        <h2 id="editTitle">登録内容を編集</h2>
+        <button id="closeEditBtn" class="close-btn" type="button">閉じる</button>
+      </div>
+      <label for="editCode">コード <span class="required">必須</span></label>
+      <input id="editCode" class="big-input code-input" type="text" inputmode="numeric">
+      <label for="editName">商品名 <span class="required">必須</span></label>
+      <input id="editName" class="big-input" type="text">
+      <label for="editMemo">メモ</label>
+      <textarea id="editMemo" class="big-input" rows="3"></textarea>
+      <p id="editError" class="error" role="alert"></p>
+      <button id="saveEditBtn" class="btn btn-primary btn-wide" type="button">変更を保存</button>
+      <button id="deleteBtn" class="btn btn-danger btn-wide" type="button">この商品を削除</button>
+    </section>
+  </div>
 
-function openEdit(id) {
-  const item = items.find(x => x.id === id);
-  if (!item) return;
-  selectedId = id;
-  $('editCode').value = item.code;
-  $('editName').value = item.name;
-  $('editMemo').value = item.memo || '';
-  $('editError').textContent = '';
-  $('editDialog').showModal();
-}
-
-function saveEdit() {
-  const item = items.find(x => x.id === selectedId);
-  if (!item) return;
-  const code = $('editCode').value.trim();
-  const name = $('editName').value.trim();
-  $('editError').textContent = '';
-  if (!code || !name) {
-    $('editError').textContent = 'コードと商品名は必須です。';
-    return;
-  }
-  if (isDuplicate(code, selectedId)) {
-    $('editError').textContent = '同じコードがすでに登録されています。';
-    return;
-  }
-  item.code = code;
-  item.name = name;
-  item.memo = $('editMemo').value.trim();
-  item.updatedAt = new Date().toISOString();
-  saveItems();
-  render();
-  $('editDialog').close();
-}
-
-function deleteSelected() {
-  const item = items.find(x => x.id === selectedId);
-  if (!item) return;
-  if (!confirm(`「${item.name}」を削除しますか？`)) return;
-  items = items.filter(x => x.id !== selectedId);
-  saveItems();
-  render();
-  $('editDialog').close();
-}
-
-function convertSpokenNumber(text = '') {
-  const map = {
-    'ゼロ':'0','れい':'0','零':'0','いち':'1','一':'1','に':'2','二':'2','さん':'3','三':'3',
-    'よん':'4','し':'4','四':'4','ご':'5','五':'5','ろく':'6','六':'6','なな':'7','しち':'7','七':'7',
-    'はち':'8','八':'8','きゅう':'9','く':'9','九':'9'
-  };
-  let out = text.normalize('NFKC').toLowerCase();
-  Object.entries(map).sort((a,b) => b[0].length - a[0].length).forEach(([k,v]) => { out = out.split(k).join(v); });
-  out = out.replace(/マイナス/g, '-').replace(/ハイフン/g, '-').replace(/ダッシュ/g, '-');
-  return out.replace(/[\s、。,.・]/g, '').replace(/[^0-9A-Za-z._\-/]/g, '');
-}
-
-function setupSpeechRecognition() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    $('voiceCodeBtn').disabled = true;
-    $('voiceStatus').textContent = 'この端末のブラウザでは音声入力に対応していません。文字入力をご利用ください。';
-    return;
-  }
-  recognition = new SpeechRecognition();
-  recognition.lang = 'ja-JP';
-  recognition.interimResults = false;
-  recognition.continuous = false;
-  recognition.maxAlternatives = 3;
-
-  recognition.onstart = () => {
-    isListening = true;
-    $('voiceCodeBtn').textContent = '⏹ 聞き取り中';
-    $('voiceCodeBtn').classList.add('listening');
-    $('voiceStatus').textContent = '番号を1桁ずつ、ゆっくり話してください。';
-  };
-  recognition.onresult = event => {
-    const choices = [];
-    for (let i = 0; i < event.results[0].length; i++) choices.push(event.results[0][i].transcript);
-    const converted = choices.map(convertSpokenNumber).sort((a,b) => b.length - a.length)[0] || '';
-    if (converted) {
-      $('codeInput').value = converted;
-      $('voiceStatus').textContent = `認識結果：${converted}　目で確認して、違う場合は文字で直してください。`;
-      $('codeInput').focus();
-    } else {
-      $('voiceStatus').textContent = '番号を認識できませんでした。もう一度話すか、文字で入力してください。';
-    }
-  };
-  recognition.onerror = event => {
-    const messages = {
-      'not-allowed':'マイクの使用が許可されていません。Chromeのサイト設定でマイクを許可してください。',
-      'no-speech':'音声が聞き取れませんでした。もう一度お試しください。',
-      'network':'音声認識の通信に失敗しました。インターネット接続を確認してください。',
-      'audio-capture':'マイクを使用できませんでした。'
-    };
-    $('voiceStatus').textContent = messages[event.error] || `音声入力に失敗しました（${event.error}）。文字入力も利用できます。`;
-  };
-  recognition.onend = () => {
-    isListening = false;
-    $('voiceCodeBtn').textContent = '🎤 番号を話す';
-    $('voiceCodeBtn').classList.remove('listening');
-  };
-}
-
-function toggleVoice() {
-  if (!recognition) return;
-  try {
-    if (isListening) recognition.stop();
-    else recognition.start();
-  } catch {
-    $('voiceStatus').textContent = '少し待ってから、もう一度マイクボタンを押してください。';
-  }
-}
-
-function exportCsv() {
-  const rows = [['コード','商品名','メモ'], ...items.map(x => [x.code, x.name, x.memo || ''])];
-  const csv = '\ufeff' + rows.map(r => r.map(escapeCsv).join(',')).join('\r\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `code-memo-${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-$('searchBtn').addEventListener('click', executeSearch);
-$('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); executeSearch(); } });
-$('showAllBtn').addEventListener('click', () => { $('searchInput').value = ''; activeSearchQuery = ''; render(); });
-$('clearSearchBtn').addEventListener('click', () => { $('searchInput').value = ''; activeSearchQuery = ''; render(); $('searchInput').focus(); });
-$('openAddBtn').addEventListener('click', openAdd);
-$('navAdd').addEventListener('click', openAdd);
-$('navSearch').addEventListener('click', () => { window.scrollTo({top:0,behavior:'smooth'}); $('searchInput').focus(); });
-$('navList').addEventListener('click', () => { $('searchInput').value = ''; activeSearchQuery = ''; render(); window.scrollTo({top:0,behavior:'smooth'}); });
-$('closeAddBtn').addEventListener('click', () => $('addDialog').close());
-$('closeConfirmBtn').addEventListener('click', backToEdit);
-$('closeEditBtn').addEventListener('click', () => $('editDialog').close());
-$('addForm').addEventListener('submit', e => { e.preventDefault(); prepareConfirmation(); });
-$('confirmRegisterBtn').addEventListener('click', registerPending);
-$('backToEditBtn').addEventListener('click', backToEdit);
-$('voiceCodeBtn').addEventListener('click', toggleVoice);
-$('saveEditBtn').addEventListener('click', saveEdit);
-$('deleteBtn').addEventListener('click', deleteSelected);
-$('exportBtn').addEventListener('click', exportCsv);
-
-setupSpeechRecognition();
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
-render();
+  <div id="toast" class="toast" hidden></div>
+  <script src="app.js?v=6"></script>
+</body>
+</html>
