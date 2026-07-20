@@ -1,1 +1,106 @@
-{"name":"コードメモ","short_name":"コードメモ","start_url":"./?v=6","display":"standalone","background_color":"#eef3f7","theme_color":"#12324a","lang":"ja"}
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#12324a">
+  <title>コードメモ</title>
+  <link rel="stylesheet" href="styles.css?v=8">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>コードメモ</h1>
+      <p>番号と商品名をかんたん登録</p>
+    </div>
+    <button id="exportBtn" class="btn btn-sub compact" type="button">CSV保存</button>
+  </header>
+
+  <main class="page">
+    <section id="searchSection" class="panel">
+      <h2>商品を検索</h2>
+      <label for="searchInput">商品名またはコード</label>
+      <input id="searchInput" class="big-input" type="search" placeholder="1文字以上入力" autocomplete="off">
+      <button id="searchBtn" class="btn btn-primary btn-wide" type="button">検索する</button>
+      <div class="two-buttons">
+        <button id="showAllBtn" class="btn btn-sub" type="button">すべて表示</button>
+        <button id="clearSearchBtn" class="btn btn-sub" type="button">入力を消す</button>
+      </div>
+    </section>
+
+    <section id="listSection" class="panel">
+      <div class="section-head">
+        <h2 id="listTitle">登録一覧</h2>
+        <span id="countBadge" class="badge">0件</span>
+      </div>
+      <div id="itemList" class="item-list" aria-live="polite"></div>
+      <p id="emptyMessage" class="empty">まだ商品が登録されていません。</p>
+    </section>
+  </main>
+
+  <button id="openAddBtn" class="add-fixed" type="button">＋ 新しく登録</button>
+
+  <div id="addPanel" class="overlay" hidden>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+      <div class="sheet-head">
+        <h2 id="addTitle">新しく登録</h2>
+        <button id="closeAddBtn" class="close-btn" type="button">閉じる</button>
+      </div>
+
+      <label for="codeInput">コード <span class="required">必須</span></label>
+      <input id="codeInput" class="big-input code-input" type="text" inputmode="numeric" placeholder="番号を入力">
+      <p class="notice">文字入力、またはキーボードに表示されるマイクで音声入力できます。入力後は必ず番号を確認してください。</p>
+
+      <label for="nameInput">商品名 <span class="required">必須</span></label>
+      <input id="nameInput" class="big-input" type="text" placeholder="分かりやすい名前を入力">
+
+      <button id="toggleMemoBtn" class="btn btn-sub btn-wide" type="button">任意のメモを開く</button>
+      <div id="memoArea" hidden>
+        <label for="memoInput">メモ</label>
+        <textarea id="memoInput" class="big-input" rows="3" placeholder="購入先や用途など"></textarea>
+      </div>
+
+      <p id="formError" class="error" role="alert"></p>
+      <button id="previewRegisterBtn" class="btn btn-primary btn-wide" type="button">内容を確認する</button>
+    </section>
+  </div>
+
+  <div id="confirmPanel" class="overlay" hidden>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="sheet-head">
+        <h2 id="confirmTitle">登録内容を確認</h2>
+      </div>
+      <p class="confirm-label">コード</p>
+      <div id="confirmCode" class="confirm-box confirm-code"></div>
+      <p class="confirm-label">商品名</p>
+      <div id="confirmName" class="confirm-box"></div>
+      <p class="notice">表示を確認し、正しければ登録してください。</p>
+      <div class="two-buttons">
+        <button id="backToEditBtn" class="btn btn-sub" type="button">戻って修正</button>
+        <button id="confirmRegisterBtn" class="btn btn-primary" type="button">OK・登録</button>
+      </div>
+    </section>
+  </div>
+
+  <div id="editPanel" class="overlay" hidden>
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="sheet-head">
+        <h2 id="editTitle">登録内容を編集</h2>
+        <button id="closeEditBtn" class="close-btn" type="button">閉じる</button>
+      </div>
+      <label for="editCode">コード <span class="required">必須</span></label>
+      <input id="editCode" class="big-input code-input" type="text" inputmode="numeric">
+      <label for="editName">商品名 <span class="required">必須</span></label>
+      <input id="editName" class="big-input" type="text">
+      <label for="editMemo">メモ</label>
+      <textarea id="editMemo" class="big-input" rows="3"></textarea>
+      <p id="editError" class="error" role="alert"></p>
+      <button id="saveEditBtn" class="btn btn-primary btn-wide" type="button">変更を保存</button>
+      <button id="deleteBtn" class="btn btn-danger btn-wide" type="button">この商品を削除</button>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+  <script src="app.js?v=8"></script>
+</body>
+</html>
