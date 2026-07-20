@@ -1,6 +1,8 @@
 const STORAGE_KEY = 'code-memo-items-v1';
 let items = loadItems();
 let selectedId = null;
+let activeSearchQuery = '';
+let selectedOcrFiles = [];
 
 const $ = (id) => document.getElementById(id);
 const normalize = (text='') => text.normalize('NFKC').toLowerCase().replace(/[ァ-ン]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
@@ -12,11 +14,11 @@ function loadItems(){
 }
 function saveItems(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
 function render(){
-  const q = normalize($('searchInput').value.trim());
+  const q = normalize(activeSearchQuery);
   const filtered = items
     .filter(x => !q || normalize(x.name).includes(q) || normalize(x.code).includes(q))
     .sort((a,b) => a.name.localeCompare(b.name, 'ja'));
-  $('listTitle').textContent = q ? `「${$('searchInput').value}」の検索結果` : '登録一覧';
+  $('listTitle').textContent = q ? `「${activeSearchQuery}」の検索結果` : '登録一覧';
   $('countBadge').textContent = `${filtered.length}件`;
   $('itemList').innerHTML = '';
   $('emptyMessage').hidden = filtered.length > 0;
@@ -57,46 +59,74 @@ function createBulkRow(code='', name='', warning=false){
   row.querySelector('.bulk-name').value = name;
   $('bulkRows').appendChild(row);
 }
-function looksLikeCode(token){ return /^[A-Za-z0-9][A-Za-z0-9._\-/]{3,}$/.test(token) && (/\d/.test(token)); }
+function looksLikeCode(token){
+  const t = String(token || '').replace(/[ー―−–—]/g,'-').replace(/[，,]/g,'').trim();
+  return /^[A-Za-z0-9][A-Za-z0-9._\-/]{2,}$/.test(t) && /\d/.test(t);
+}
+function cleanOcrCode(token=''){
+  return token.replace(/[（(].*?[）)]/g,'').replace(/[，,：:]/g,'').replace(/[ー―−–—]/g,'-').trim();
+}
 function parseOcrText(text){
   const lines = text.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
   const parsed = [];
-  for (const line of lines){
-    const cleaned = line.replace(/[|｜]/g,' ').replace(/\s+/g,' ').trim();
-    const parts = cleaned.split(' ');
-    let code='', name='';
-    if (parts.length >= 2){
-      const first = parts[0], last = parts[parts.length-1];
-      if (looksLikeCode(first)) { code = first; name = parts.slice(1).join(' '); }
-      else if (looksLikeCode(last)) { code = last; name = parts.slice(0,-1).join(' '); }
-      else {
-        const idx = parts.findIndex(looksLikeCode);
-        if (idx >= 0) { code = parts[idx]; name = parts.filter((_,i)=>i!==idx).join(' '); }
-      }
+  for (let raw of lines){
+    let cleaned = raw.replace(/^[・●■□◆◇※*\-]+\s*/, '').replace(/^\d+[.)、]\s*/, '').replace(/[|｜]/g,' ').replace(/\s+/g,' ').trim();
+    if (!cleaned) continue;
+    const codeMatches = cleaned.match(/[A-Za-z0-9][A-Za-z0-9._\-/]{2,}/g) || [];
+    let code = codeMatches.map(cleanOcrCode).find(looksLikeCode) || '';
+    let name = code ? cleaned.replace(code, ' ').replace(/^[\s:：\-]+|[\s:：\-]+$/g,'').trim() : cleaned;
+    // 数字だけの行は次の行の商品名と組み合わせる
+    if (code && !name && parsed.length && !parsed[parsed.length-1].code) {
+      parsed[parsed.length-1].code = code;
+      parsed[parsed.length-1].warning = !parsed[parsed.length-1].name;
+      continue;
     }
-    if (code || name) parsed.push({code, name, warning: !(code && name)});
+    if (!code && parsed.length && parsed[parsed.length-1].code && !parsed[parsed.length-1].name) {
+      parsed[parsed.length-1].name = name;
+      parsed[parsed.length-1].warning = false;
+      continue;
+    }
+    parsed.push({code, name, warning: !(code && name)});
   }
   return parsed;
 }
+function updateSelectedPhotos(files){
+  selectedOcrFiles = [...files];
+  $('selectedPhotos').textContent = selectedOcrFiles.length ? 'メモを撮影しました。文字を読み取っています…' : '撮影すると、自動で文字の読み取りを開始します。';
+}
+function displayParsedRows(parsed){
+  $('bulkRows').innerHTML = '';
+  if (parsed.length) {
+    const head=document.createElement('div'); head.className='bulk-row-header'; head.innerHTML='<span></span><span>コード</span><span>商品名</span>'; $('bulkRows').appendChild(head);
+    parsed.forEach(x => createBulkRow(x.code, x.name, x.warning));
+  } else createBulkRow('', '', true);
+}
 async function runOcr(){
-  const files = [...$('photoInput').files];
-  if (!files.length) { $('ocrStatus').textContent = '写真を選択してください。'; return; }
-  if (!window.Tesseract) { $('ocrStatus').textContent = '文字認識機能を読み込めませんでした。通信状態を確認してください。'; return; }
-  $('ocrBtn').disabled = true; $('bulkRows').innerHTML='';
-  let all=[];
+  const files = selectedOcrFiles;
+  if (!files.length) { $('ocrStatus').textContent = '「メモを撮影」を押して、その場でメモを撮影してください。'; return; }
+  if (!window.Tesseract) { $('ocrStatus').textContent = '文字認識機能を読み込めませんでした。インターネット接続を確認してください。'; return; }
+  $('ocrBtn').disabled = true; $('bulkRows').innerHTML=''; $('ocrRawText').value='';
+  let texts=[];
   try {
     for (let i=0;i<files.length;i++){
       $('ocrStatus').textContent = `${i+1}/${files.length}枚目を読み取り中…`;
       const result = await Tesseract.recognize(files[i], 'jpn+eng', {
         logger: m => { if (m.status === 'recognizing text') $('ocrStatus').textContent = `${i+1}/${files.length}枚目：${Math.round((m.progress||0)*100)}%`; }
       });
-      all = all.concat(parseOcrText(result.data.text));
+      texts.push(result.data.text || '');
     }
-    all.forEach(x => createBulkRow(x.code, x.name, x.warning));
-    if (!all.length) createBulkRow('', '', true);
-    $('ocrStatus').textContent = `${all.length}件の候補を作成しました。内容を確認してください。`;
+    const raw=texts.join('\n');
+    $('ocrRawText').value=raw;
+    const all=parseOcrText(raw);
+    displayParsedRows(all);
+    $('ocrStatus').textContent = `${all.length}件の候補を作成しました。黄色の行や読み違いを修正してから登録してください。`;
   } catch(e){ $('ocrStatus').textContent = `読み取りに失敗しました：${e.message}`; }
   finally { $('ocrBtn').disabled = false; }
+}
+function reparseOcr(){
+  const parsed=parseOcrText($('ocrRawText').value);
+  displayParsedRows(parsed);
+  $('ocrStatus').textContent=`修正した文字から${parsed.length}件の候補を作り直しました。`;
 }
 function registerBulk(){
   const rows = [...document.querySelectorAll('.bulk-row')];
@@ -139,6 +169,7 @@ function applyScannedCode(code){
   if (!code) return;
   if (scannerTarget === 'search') {
     $('searchInput').value = code;
+    activeSearchQuery = code;
     render();
   } else {
     $('codeInput').value = code;
@@ -197,15 +228,21 @@ async function decodeBarcodePhoto(file){
   } catch(err){ $('scannerStatus').textContent = `写真から読み取れませんでした。明るい場所でバーコード全体を大きく撮影してください。${err.message ? `（${err.message}）` : ''}`; }
 }
 
-$('searchInput').addEventListener('input', render);
+function executeSearch(){
+  const value=$('searchInput').value.trim();
+  if (!value) { activeSearchQuery=''; render(); $('searchInput').focus(); return; }
+  activeSearchQuery=value; render();
+}
+$('searchBtn').addEventListener('click', executeSearch);
+$('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); executeSearch(); } });
 $('scanCodeBtn').addEventListener('click', () => startScanner('code'));
 $('scanSearchBtn').addEventListener('click', () => startScanner('search'));
 $('closeScannerBtn').addEventListener('click', () => { stopScanner(); $('scannerDialog').close(); });
 $('retryScannerBtn').addEventListener('click', () => startScanner(scannerTarget));
 $('barcodePhotoInput').addEventListener('change', e => decodeBarcodePhoto(e.target.files && e.target.files[0]));
 $('scannerDialog').addEventListener('close', stopScanner);
-$('showAllBtn').addEventListener('click', () => { $('searchInput').value=''; render(); });
-$('clearSearchBtn').addEventListener('click', () => { $('searchInput').value=''; $('searchInput').focus(); render(); });
+$('showAllBtn').addEventListener('click', () => { $('searchInput').value=''; activeSearchQuery=''; render(); });
+$('clearSearchBtn').addEventListener('click', () => { $('searchInput').value=''; activeSearchQuery=''; $('searchInput').focus(); render(); });
 $('openAddBtn').addEventListener('click', () => $('addDialog').showModal());
 $('navAdd').addEventListener('click', () => $('addDialog').showModal());
 $('navBulk').addEventListener('click', () => $('bulkDialog').showModal());
@@ -215,7 +252,15 @@ $('closeBulkBtn').addEventListener('click', () => $('bulkDialog').close());
 $('closeDetailBtn').addEventListener('click', () => $('detailDialog').close());
 $('addForm').addEventListener('submit', e => { e.preventDefault(); addOne(false); });
 $('saveAndContinueBtn').addEventListener('click', () => addOne(true));
+$('photoInput').addEventListener('change', async e => {
+  updateSelectedPhotos(e.target.files || []);
+  if (selectedOcrFiles.length) {
+    $('ocrBtn').hidden = false;
+    await runOcr();
+  }
+});
 $('ocrBtn').addEventListener('click', runOcr);
+$('reparseOcrBtn').addEventListener('click', reparseOcr);
 $('addBulkRowBtn').addEventListener('click', () => createBulkRow());
 $('registerBulkBtn').addEventListener('click', registerBulk);
 $('exportBtn').addEventListener('click', exportCsv);

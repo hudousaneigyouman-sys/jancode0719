@@ -23,7 +23,11 @@
   <main>
     <section class="search-panel card">
       <label for="searchInput">商品を検索</label>
-      <input id="searchInput" type="search" placeholder="1文字入力すると候補を表示" autocomplete="off" />
+      <div class="search-box-row">
+        <input id="searchInput" type="search" placeholder="商品名またはコードを1文字以上入力" autocomplete="off" />
+        <button id="searchBtn" class="primary" type="button">検索</button>
+      </div>
+      <p class="search-help">1文字入力して「検索」を押すと、登録済みの商品を一覧表示します。</p>
       <button id="scanSearchBtn" class="secondary full" type="button">📷 バーコードで検索</button>
       <div class="search-actions">
         <button id="showAllBtn" class="ghost">すべて表示</button>
@@ -76,13 +80,21 @@
   <dialog id="bulkDialog">
     <div class="dialog-card wide">
       <div class="dialog-head">
-        <h2>写真からまとめて追加</h2>
+        <h2>撮影でまとめて追加</h2>
         <button type="button" id="closeBulkBtn" class="icon-btn" aria-label="閉じる">×</button>
       </div>
-      <p class="hint">1行に「コード 商品名」または「商品名 コード」と書いたメモが読み取りやすいです。</p>
-      <input id="photoInput" type="file" accept="image/*" capture="environment" multiple />
-      <button id="ocrBtn" class="primary full">写真を読み取る</button>
-      <div id="ocrStatus" class="status"></div>
+      <p class="hint">メモ帳のリストをその場で撮影すると、文字を読み取り、コードと商品名の候補を作ります。1商品を1行で書いたメモが最も読み取りやすいです。</p>
+      <div class="photo-actions single">
+        <label class="primary file-label full">📷 メモを撮影<input id="photoInput" type="file" accept="image/*" capture="environment"></label>
+      </div>
+      <div id="selectedPhotos" class="selected-photos">撮影すると、自動で文字の読み取りを開始します。</div>
+      <button id="ocrBtn" class="secondary full" type="button" hidden>もう一度文字を読み取る</button>
+      <div id="ocrStatus" class="status" role="status"></div>
+      <details class="ocr-text-details">
+        <summary>読み取った文字を確認・修正する</summary>
+        <textarea id="ocrRawText" rows="8" placeholder="読み取った文字がここに表示されます。修正後に「文字から候補を作り直す」を押せます。"></textarea>
+        <button id="reparseOcrBtn" class="secondary full" type="button">文字から候補を作り直す</button>
+      </details>
       <div id="bulkRows" class="bulk-rows"></div>
       <div class="dialog-actions">
         <button id="addBulkRowBtn" class="ghost">＋ 行を追加</button>
@@ -130,7 +142,7 @@
   <nav class="bottom-nav">
     <button id="navSearch" class="active">検索</button>
     <button id="navAdd">1件追加</button>
-    <button id="navBulk">写真で追加</button>
+    <button id="navBulk">撮影で追加</button>
   </nav>
 </body>
 </html>
