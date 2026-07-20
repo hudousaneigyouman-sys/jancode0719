@@ -1,1 +1,317 @@
-:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;color:#17212b;background:#eef3f7;--navy:#12324a;--blue:#176b87;--blue-dark:#11536a;--line:#b9c8d3;--soft:#e8f1f5;--danger:#b42318}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html{font-size:16px}body{margin:0;padding-bottom:92px;background:#eef3f7}button,input,textarea{font:inherit}button{touch-action:manipulation}.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;background:var(--navy);color:#fff;box-shadow:0 3px 12px rgba(0,0,0,.18)}.topbar h1{margin:0;font-size:1.45rem}.topbar p{margin:4px 0 0;font-size:.86rem;opacity:.9}.page{max-width:760px;margin:0 auto;padding:14px}.panel{background:#fff;border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 4px 16px rgba(18,50,74,.09)}h2{font-size:1.18rem;margin:0 0 14px}.section-head{display:flex;align-items:center;justify-content:space-between}.section-head h2{margin:0}label{display:block;margin:16px 0 7px;font-size:1rem;font-weight:800}.required{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:999px;background:#fee4e2;color:#b42318;font-size:.72rem}.big-input{display:block;width:100%;min-height:58px;border:2px solid var(--line);border-radius:14px;background:#fff;padding:14px 15px;font-size:18px;color:#17212b}.code-input{font-size:21px;letter-spacing:.04em}.big-input:focus{outline:4px solid rgba(23,107,135,.16);border-color:var(--blue)}textarea.big-input{min-height:100px;resize:vertical}.btn{min-height:54px;border:0;border-radius:14px;padding:13px 16px;font-weight:800;font-size:17px}.btn:active{transform:translateY(1px);filter:brightness(.95)}.btn-primary{background:var(--blue);color:#fff}.btn-primary:active{background:var(--blue-dark)}.btn-sub{background:#e3edf2;color:#17394b}.btn-voice{background:#dcecff;color:#184f7a}.btn-danger{background:#fee4e2;color:var(--danger)}.btn-wide{width:100%;margin-top:12px}.compact{min-height:44px;padding:9px 12px;font-size:.86rem;white-space:nowrap}.two-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.notice{margin:9px 2px 0;color:#516575;font-size:.9rem;line-height:1.55}.error{min-height:1.35em;margin:12px 0;color:#b42318;font-weight:700}.badge{display:inline-block;padding:6px 10px;border-radius:999px;background:#dfe9ef;color:#29485a;font-weight:800}.item-list{display:grid;gap:12px;margin-top:15px}.item-card{border:2px solid #d6e1e8;border-radius:16px;background:#fff;overflow:hidden}.item-content{display:block;width:100%;border:0;background:#fff;text-align:left;padding:16px}.item-name{display:block;font-size:18px;font-weight:900;line-height:1.35}.item-code{display:block;margin-top:7px;color:#526778;font-size:16px;word-break:break-all}.item-edit{display:block;width:100%;min-height:49px;border:0;border-top:1px solid #d6e1e8;background:#eaf3f7;color:#15506d;font-weight:900;font-size:16px}.empty{text-align:center;color:#687b89;padding:34px 8px}.add-fixed{position:fixed;z-index:30;left:14px;right:14px;bottom:14px;max-width:732px;margin:0 auto;min-height:62px;border:0;border-radius:18px;background:var(--blue);color:#fff;font-size:19px;font-weight:900;box-shadow:0 10px 26px rgba(23,107,135,.35)}.overlay{position:fixed;inset:0;z-index:100;background:rgba(8,25,38,.62);overflow-y:auto;padding:14px}.overlay[hidden]{display:none}.sheet{width:min(100%,620px);margin:10px auto 30px;background:#fff;border-radius:20px;padding:20px;box-shadow:0 18px 55px rgba(0,0,0,.35)}.sheet-head{display:flex;justify-content:space-between;align-items:center;gap:12px}.sheet-head h2{margin:0}.close-btn{min-height:44px;border:0;border-radius:12px;background:#e4edf2;color:#26485a;padding:8px 14px;font-weight:800}.confirm-label{margin:18px 0 7px;color:#526778;font-weight:800}.confirm-box{border:2px solid #b9c8d3;border-radius:14px;background:#f6f9fb;padding:16px;font-size:19px;font-weight:900;word-break:break-all}.confirm-code{font-size:24px;letter-spacing:.05em}.toast{position:fixed;z-index:200;left:50%;bottom:92px;transform:translateX(-50%);width:min(90%,420px);border-radius:13px;background:#152f41;color:#fff;padding:13px 16px;text-align:center;font-weight:800;box-shadow:0 8px 24px rgba(0,0,0,.28)}@media(max-width:420px){.page{padding:10px}.panel{padding:15px;border-radius:15px}.topbar{padding:13px}.topbar h1{font-size:1.3rem}.btn{font-size:16px}.two-buttons{grid-template-columns:1fr}.sheet{padding:17px}.big-input{font-size:17px;min-height:56px}.code-input{font-size:20px}}
+(function () {
+  'use strict';
+
+  // 旧版のService Workerとキャッシュを解除し、更新後の画面を確実に表示する。
+  try {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (regs) {
+        regs.forEach(function (reg) { reg.unregister(); });
+      });
+    }
+    if ('caches' in window) {
+      caches.keys().then(function (keys) {
+        keys.forEach(function (key) { caches.delete(key); });
+      });
+    }
+  } catch (cleanupError) {}
+  var STORAGE_KEY = 'code-memo-items-v1';
+  var items = [];
+  var activeQuery = '';
+  var selectedId = null;
+  var pendingItem = null;
+  var recognition = null;
+  var listening = false;
+
+  function el(id) { return document.getElementById(id); }
+  function trim(value) { return String(value || '').replace(/^\s+|\s+$/g, ''); }
+  function normalize(value) {
+    var text = String(value || '');
+    try { text = text.normalize('NFKC'); } catch (e) {}
+    return text.toLowerCase().replace(/[ァ-ン]/g, function (c) {
+      return String.fromCharCode(c.charCodeAt(0) - 96);
+    });
+  }
+  function load() {
+    try {
+      var data = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+      items = Array.isArray(data) ? data : [];
+    } catch (e) { items = []; }
+  }
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+    catch (e) { showToast('保存できませんでした。Chromeの保存設定を確認してください。'); }
+  }
+  function makeId() {
+    return String(new Date().getTime()) + '-' + Math.random().toString(36).slice(2);
+  }
+  function duplicate(code, exceptId) {
+    var target = normalize(code);
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].id !== exceptId && normalize(items[i].code) === target) return true;
+    }
+    return false;
+  }
+  function showPanel(id) {
+    el(id).hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+  function hidePanel(id) {
+    el(id).hidden = true;
+    document.body.style.overflow = '';
+  }
+  function showToast(message) {
+    var toast = el('toast');
+    toast.textContent = message;
+    toast.hidden = false;
+    window.setTimeout(function () { toast.hidden = true; }, 2200);
+  }
+  function render() {
+    var q = normalize(activeQuery);
+    var filtered = items.filter(function (item) {
+      return !q || normalize(item.name).indexOf(q) !== -1 || normalize(item.code).indexOf(q) !== -1;
+    });
+    filtered.sort(function (a, b) { return String(a.name).localeCompare(String(b.name), 'ja'); });
+
+    el('listTitle').textContent = q ? '「' + activeQuery + '」の検索結果' : '登録一覧';
+    el('countBadge').textContent = filtered.length + '件';
+    el('itemList').innerHTML = '';
+    el('emptyMessage').hidden = filtered.length > 0;
+    el('emptyMessage').textContent = items.length ? '該当する商品がありません。' : 'まだ商品が登録されていません。';
+
+    filtered.forEach(function (item) {
+      var card = document.createElement('article');
+      card.className = 'item-card';
+      var content = document.createElement('button');
+      content.type = 'button';
+      content.className = 'item-content';
+      var name = document.createElement('span');
+      name.className = 'item-name';
+      name.textContent = item.name;
+      var code = document.createElement('span');
+      code.className = 'item-code';
+      code.textContent = item.code;
+      content.appendChild(name);
+      content.appendChild(code);
+      content.onclick = function () { openEdit(item.id); };
+      var edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'item-edit';
+      edit.textContent = '編集する';
+      edit.onclick = function () { openEdit(item.id); };
+      card.appendChild(content);
+      card.appendChild(edit);
+      el('itemList').appendChild(card);
+    });
+  }
+  function executeSearch() {
+    var value = trim(el('searchInput').value);
+    if (!value) {
+      showToast('検索する文字を1文字以上入力してください。');
+      return;
+    }
+    activeQuery = value;
+    render();
+    el('listSection').scrollIntoView();
+  }
+  function openAdd() {
+    el('formError').textContent = '';
+    el('voiceStatus').textContent = '数字を1桁ずつ、ゆっくり話してください。';
+    showPanel('addPanel');
+    window.setTimeout(function () { el('codeInput').focus(); }, 150);
+  }
+  function resetAdd() {
+    el('codeInput').value = '';
+    el('nameInput').value = '';
+    el('memoInput').value = '';
+    el('memoArea').hidden = true;
+    el('toggleMemoBtn').textContent = '任意のメモを開く';
+    el('formError').textContent = '';
+  }
+  function prepareConfirmation() {
+    var code = trim(el('codeInput').value);
+    var name = trim(el('nameInput').value);
+    var memo = trim(el('memoInput').value);
+    el('formError').textContent = '';
+    if (!code || !name) {
+      el('formError').textContent = 'コードと商品名を両方入力してください。';
+      return;
+    }
+    if (duplicate(code, null)) {
+      el('formError').textContent = '同じコードがすでに登録されています。';
+      return;
+    }
+    pendingItem = { code: code, name: name, memo: memo };
+    el('confirmCode').textContent = code;
+    el('confirmName').textContent = name;
+    hidePanel('addPanel');
+    showPanel('confirmPanel');
+  }
+  function registerPending() {
+    if (!pendingItem) return;
+    items.push({ id: makeId(), code: pendingItem.code, name: pendingItem.name, memo: pendingItem.memo, createdAt: new Date().toISOString() });
+    save();
+    pendingItem = null;
+    hidePanel('confirmPanel');
+    resetAdd();
+    activeQuery = '';
+    el('searchInput').value = '';
+    render();
+    showToast('登録しました。');
+  }
+  function openEdit(id) {
+    var item = items.find ? items.find(function (x) { return x.id === id; }) : null;
+    if (!item) {
+      for (var i = 0; i < items.length; i++) if (items[i].id === id) item = items[i];
+    }
+    if (!item) return;
+    selectedId = id;
+    el('editCode').value = item.code;
+    el('editName').value = item.name;
+    el('editMemo').value = item.memo || '';
+    el('editError').textContent = '';
+    showPanel('editPanel');
+  }
+  function saveEdit() {
+    var item = null;
+    for (var i = 0; i < items.length; i++) if (items[i].id === selectedId) item = items[i];
+    if (!item) return;
+    var code = trim(el('editCode').value);
+    var name = trim(el('editName').value);
+    if (!code || !name) {
+      el('editError').textContent = 'コードと商品名を両方入力してください。';
+      return;
+    }
+    if (duplicate(code, selectedId)) {
+      el('editError').textContent = '同じコードがすでに登録されています。';
+      return;
+    }
+    item.code = code;
+    item.name = name;
+    item.memo = trim(el('editMemo').value);
+    item.updatedAt = new Date().toISOString();
+    save();
+    hidePanel('editPanel');
+    render();
+    showToast('変更を保存しました。');
+  }
+  function deleteSelected() {
+    var name = '';
+    for (var i = 0; i < items.length; i++) if (items[i].id === selectedId) name = items[i].name;
+    if (!window.confirm('「' + name + '」を削除しますか？')) return;
+    items = items.filter(function (item) { return item.id !== selectedId; });
+    save();
+    hidePanel('editPanel');
+    render();
+    showToast('削除しました。');
+  }
+  function spokenToCode(text) {
+    var map = [['ゼロ','0'],['れい','0'],['零','0'],['いち','1'],['一','1'],['に','2'],['二','2'],['さん','3'],['三','3'],['よん','4'],['四','4'],['し','4'],['ご','5'],['五','5'],['ろく','6'],['六','6'],['なな','7'],['七','7'],['しち','7'],['はち','8'],['八','8'],['きゅう','9'],['九','9'],['く','9']];
+    var out = String(text || '');
+    try { out = out.normalize('NFKC'); } catch (e) {}
+    for (var i = 0; i < map.length; i++) out = out.split(map[i][0]).join(map[i][1]);
+    out = out.split('マイナス').join('-').split('ハイフン').join('-').split('ダッシュ').join('-');
+    return out.replace(/[\s、。,.・]/g, '').replace(/[^0-9A-Za-z._\-/]/g, '');
+  }
+  function setupVoice() {
+    var Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) {
+      el('voiceCodeBtn').disabled = true;
+      el('voiceStatus').textContent = 'このChromeではマイク入力に対応していません。文字入力をご利用ください。';
+      return;
+    }
+    try {
+      recognition = new Recognition();
+      recognition.lang = 'ja-JP';
+      recognition.interimResults = false;
+      recognition.continuous = false;
+      recognition.maxAlternatives = 3;
+      recognition.onstart = function () {
+        listening = true;
+        el('voiceCodeBtn').textContent = '聞き取り中…もう一度押すと停止';
+        el('voiceStatus').textContent = '番号を1桁ずつ話してください。';
+      };
+      recognition.onresult = function (event) {
+        var best = '';
+        if (event.results && event.results[0]) {
+          for (var i = 0; i < event.results[0].length; i++) {
+            var code = spokenToCode(event.results[0][i].transcript);
+            if (code.length > best.length) best = code;
+          }
+        }
+        if (best) {
+          el('codeInput').value = best;
+          el('voiceStatus').textContent = '認識結果：' + best + '　必ず目で確認してください。';
+        } else {
+          el('voiceStatus').textContent = '認識できませんでした。文字入力をお試しください。';
+        }
+      };
+      recognition.onerror = function (event) {
+        var message = '音声入力に失敗しました。文字入力も利用できます。';
+        if (event.error === 'not-allowed') message = 'マイクが許可されていません。Chromeのサイト設定でマイクを許可してください。';
+        if (event.error === 'no-speech') message = '音声を聞き取れませんでした。もう一度お試しください。';
+        if (event.error === 'network') message = '音声認識の通信に失敗しました。ネット接続を確認してください。';
+        el('voiceStatus').textContent = message;
+      };
+      recognition.onend = function () {
+        listening = false;
+        el('voiceCodeBtn').textContent = '🎤 マイクで番号を入力';
+      };
+    } catch (e) {
+      recognition = null;
+      el('voiceCodeBtn').disabled = true;
+      el('voiceStatus').textContent = 'マイク入力を開始できません。文字入力をご利用ください。';
+    }
+  }
+  function toggleVoice() {
+    if (!recognition) return;
+    try {
+      if (listening) recognition.stop(); else recognition.start();
+    } catch (e) {
+      el('voiceStatus').textContent = '少し待ってから、もう一度押してください。';
+    }
+  }
+  function exportCsv() {
+    var rows = [['コード','商品名','メモ']];
+    items.forEach(function (item) { rows.push([item.code, item.name, item.memo || '']); });
+    function esc(value) { return '"' + String(value).replace(/"/g, '""') + '"'; }
+    var csv = '\ufeff' + rows.map(function (row) { return row.map(esc).join(','); }).join('\r\n');
+    var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'code-memo-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+  function bind(id, event, handler) {
+    var node = el(id);
+    if (node) node.addEventListener(event, handler, false);
+  }
+  function init() {
+    load();
+    bind('searchBtn', 'click', executeSearch);
+    bind('searchInput', 'keydown', function (e) { if (e.key === 'Enter' || e.keyCode === 13) { e.preventDefault(); executeSearch(); } });
+    bind('showAllBtn', 'click', function () { activeQuery = ''; el('searchInput').value = ''; render(); });
+    bind('clearSearchBtn', 'click', function () { activeQuery = ''; el('searchInput').value = ''; render(); el('searchInput').focus(); });
+    bind('openAddBtn', 'click', openAdd);
+    bind('closeAddBtn', 'click', function () { hidePanel('addPanel'); });
+    bind('previewRegisterBtn', 'click', prepareConfirmation);
+    bind('backToEditBtn', 'click', function () { hidePanel('confirmPanel'); showPanel('addPanel'); });
+    bind('confirmRegisterBtn', 'click', registerPending);
+    bind('toggleMemoBtn', 'click', function () {
+      var area = el('memoArea');
+      area.hidden = !area.hidden;
+      el('toggleMemoBtn').textContent = area.hidden ? '任意のメモを開く' : '任意のメモを閉じる';
+    });
+    bind('voiceCodeBtn', 'click', toggleVoice);
+    bind('closeEditBtn', 'click', function () { hidePanel('editPanel'); });
+    bind('saveEditBtn', 'click', saveEdit);
+    bind('deleteBtn', 'click', deleteSelected);
+    bind('exportBtn', 'click', exportCsv);
+    setupVoice();
+    render();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, false); else init();
+}());
