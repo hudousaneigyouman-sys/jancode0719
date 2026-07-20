@@ -1,90 +1,246 @@
-:root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #0f172a;
-  background: #f1f5f9;
-  --primary: #0f766e;
-  --primary-dark: #115e59;
-  --line: #cbd5e1;
+const STORAGE_KEY = 'code-memo-items-v1';
+const $ = id => document.getElementById(id);
+const normalize = (text = '') => text.normalize('NFKC').toLowerCase().replace(/[ァ-ン]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));
+const escapeCsv = (v = '') => `"${String(v).replaceAll('"', '""')}"`;
+
+let items = loadItems();
+let selectedId = null;
+let activeSearchQuery = '';
+let pendingItem = null;
+let recognition = null;
+let isListening = false;
+
+function loadItems() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch { return []; }
 }
-* { box-sizing: border-box; }
-body { margin: 0; padding-bottom: 92px; }
-button, input, textarea { font: inherit; }
-button { cursor: pointer; }
-.app-header {
-  position: sticky; top: 0; z-index: 10;
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 18px 16px; color: white; background: #0f172a;
-}
-.app-header h1 { margin: 0; font-size: 1.4rem; }
-.app-header p { margin: 4px 0 0; font-size: .82rem; opacity: .82; }
-main { max-width: 760px; margin: 0 auto; padding: 14px; }
-.card { background: white; border-radius: 18px; padding: 16px; margin-bottom: 14px; box-shadow: 0 8px 24px rgba(15,23,42,.06); }
-label { display: block; margin: 12px 0 6px; font-weight: 700; }
-label strong { color: #b91c1c; font-size: .75rem; margin-left: 6px; }
-input, textarea {
-  width: 100%; border: 1px solid var(--line); border-radius: 12px;
-  padding: 13px 14px; background: white;
-}
-input:focus, textarea:focus { outline: 3px solid rgba(15,118,110,.18); border-color: var(--primary); }
-.search-actions, .dialog-actions { display: flex; gap: 10px; margin-top: 12px; }
-.section-title-row { display:flex; justify-content:space-between; align-items:center; }
-h2 { margin: 0; font-size: 1.1rem; }
-.badge { background:#e2e8f0; padding:5px 9px; border-radius:999px; font-size:.8rem; }
-.item-list { display: grid; gap: 9px; margin-top: 12px; }
-.item {
-  display:flex; justify-content:space-between; gap:12px; align-items:center;
-  width:100%; text-align:left; border:1px solid #e2e8f0; background:white;
-  border-radius:14px; padding:13px;
-}
-.item:hover { border-color: var(--primary); background:#f0fdfa; }
-.item-name { font-weight:800; margin-bottom:4px; }
-.item-code { color:#475569; font-size:.86rem; word-break:break-all; }
-.item-arrow { font-size:1.35rem; color:#64748b; }
-.empty { text-align:center; color:#64748b; padding:28px 10px; }
-.primary, .secondary, .ghost, .danger {
-  border:0; border-radius:12px; padding:12px 14px; font-weight:800;
-}
-.primary { background:var(--primary); color:white; }
-.primary:hover { background:var(--primary-dark); }
-.secondary { background:#ccfbf1; color:#115e59; }
-.ghost { background:#e2e8f0; color:#1e293b; }
-.danger { background:#fee2e2; color:#991b1b; }
-.small { padding:9px 11px; font-size:.82rem; }
-.full { width:100%; margin-top:12px; }
-.fab {
-  position:fixed; right:18px; bottom:90px; width:58px; height:58px;
-  border-radius:50%; border:0; background:var(--primary); color:white;
-  font-size:2rem; box-shadow:0 12px 28px rgba(15,118,110,.35); z-index:12;
-}
-dialog { border:0; border-radius:20px; padding:0; width:min(94vw,560px); box-shadow:0 24px 60px rgba(0,0,0,.28); }
-dialog::backdrop { background:rgba(15,23,42,.58); }
-.dialog-card { padding:18px; }
-.dialog-card.wide { width:100%; }
-.dialog-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-.icon-btn { border:0; background:#e2e8f0; width:38px; height:38px; border-radius:50%; font-size:1.4rem; }
-details { margin-top:14px; padding:10px 12px; border:1px solid #e2e8f0; border-radius:12px; }
-summary { font-weight:800; cursor:pointer; }
-.error { color:#b91c1c; min-height:1.2em; }
-.hint, .status { color:#475569; font-size:.9rem; }
-.bulk-rows { display:grid; gap:10px; margin-top:14px; max-height:45vh; overflow:auto; }
-.bulk-row { display:grid; grid-template-columns:auto 1fr 1.4fr; gap:8px; align-items:center; padding:9px; border:1px solid #e2e8f0; border-radius:12px; }
-.bulk-row.warn { border-color:#f59e0b; background:#fffbeb; }
-.split { justify-content:space-between; }
-.bottom-nav {
-  position:fixed; left:0; right:0; bottom:0; display:grid; grid-template-columns:repeat(3,1fr);
-  background:white; border-top:1px solid #cbd5e1; padding:8px max(8px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)); z-index:11;
-}
-.bottom-nav button { border:0; background:white; padding:10px 5px; font-weight:800; color:#64748b; }
-.bottom-nav button.active { color:var(--primary); }
-@media (max-width:520px) {
-  .bulk-row { grid-template-columns:auto 1fr; }
-  .bulk-row input:last-child { grid-column:2; }
-  .dialog-actions { flex-direction:column; }
-  .dialog-actions.split { flex-direction:row; }
+function saveItems() { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+function newId() { return crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function isDuplicate(code, excludeId = null) {
+  return items.some(x => normalize(x.code) === normalize(code) && x.id !== excludeId);
 }
 
-.input-with-button{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:stretch}.input-with-button button{white-space:nowrap}.scanner-card{max-width:560px}.scanner-frame{position:relative;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:4/3}.scanner-frame video{width:100%;height:100%;object-fit:cover;display:block}.scan-line{position:absolute;left:8%;right:8%;top:50%;height:3px;background:#fff;box-shadow:0 0 10px rgba(255,255,255,.9);opacity:.9}.file-label{display:inline-flex;align-items:center;justify-content:center;cursor:pointer}.file-label input{display:none}@media(max-width:480px){.input-with-button{grid-template-columns:1fr}.input-with-button button{width:100%}}
+function render() {
+  const q = normalize(activeSearchQuery);
+  const filtered = items
+    .filter(x => !q || normalize(x.name).includes(q) || normalize(x.code).includes(q))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
 
-.search-box-row{display:grid;grid-template-columns:1fr auto;gap:9px;align-items:stretch}.search-box-row .primary{min-width:84px}.search-help{margin:8px 2px 0;color:#64748b;font-size:.84rem}.photo-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.selected-photos{margin-top:10px;padding:10px 12px;border-radius:12px;background:#f8fafc;color:#475569;font-size:.88rem;border:1px dashed #cbd5e1}.ocr-text-details{margin-top:12px}.ocr-text-details textarea{margin-top:8px}.bulk-row-header{display:grid;grid-template-columns:auto 1fr 1.4fr;gap:8px;padding:0 9px;color:#64748b;font-size:.78rem;font-weight:700}.bulk-row-header span:first-child{width:20px}@media(max-width:520px){.search-box-row{grid-template-columns:1fr}.search-box-row .primary{width:100%}.photo-actions{grid-template-columns:1fr}.bulk-row-header{display:none}}
+  $('listTitle').textContent = q ? `「${activeSearchQuery}」の検索結果` : '登録一覧';
+  $('countBadge').textContent = `${filtered.length}件`;
+  $('itemList').innerHTML = '';
+  $('emptyMessage').hidden = filtered.length > 0;
+  $('emptyMessage').textContent = !items.length ? 'まだ商品が登録されていません。' : '該当する商品がありません。';
 
-.photo-actions.single{grid-template-columns:1fr}
+  filtered.forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'item';
+    card.innerHTML = `
+      <button class="item-main" type="button">
+        <span class="item-name"></span>
+        <span class="item-code"></span>
+      </button>
+      <button class="edit-button" type="button">編集</button>`;
+    card.querySelector('.item-name').textContent = item.name;
+    card.querySelector('.item-code').textContent = item.code;
+    card.querySelector('.item-main').addEventListener('click', () => openEdit(item.id));
+    card.querySelector('.edit-button').addEventListener('click', () => openEdit(item.id));
+    $('itemList').appendChild(card);
+  });
+}
+
+function executeSearch() {
+  activeSearchQuery = $('searchInput').value.trim();
+  render();
+}
+
+function openAdd() {
+  $('formError').textContent = '';
+  $('voiceStatus').textContent = '数字は1桁ずつ、ゆっくり話すと認識しやすくなります。';
+  $('addDialog').showModal();
+  setTimeout(() => $('codeInput').focus(), 100);
+}
+
+function prepareConfirmation() {
+  const code = $('codeInput').value.trim();
+  const name = $('nameInput').value.trim();
+  const memo = $('memoInput').value.trim();
+  $('formError').textContent = '';
+  if (!code || !name) {
+    $('formError').textContent = 'コードと商品名を入力してください。';
+    return;
+  }
+  if (isDuplicate(code)) {
+    $('formError').textContent = '同じコードがすでに登録されています。';
+    return;
+  }
+  pendingItem = { code, name, memo };
+  $('confirmCode').textContent = code;
+  $('confirmName').textContent = name;
+  $('addDialog').close();
+  $('confirmDialog').showModal();
+}
+
+function registerPending() {
+  if (!pendingItem) return;
+  items.push({ id: newId(), ...pendingItem, createdAt: new Date().toISOString() });
+  saveItems();
+  render();
+  pendingItem = null;
+  $('confirmDialog').close();
+  $('addForm').reset();
+  alert('登録しました。');
+}
+
+function backToEdit() {
+  $('confirmDialog').close();
+  $('addDialog').showModal();
+}
+
+function openEdit(id) {
+  const item = items.find(x => x.id === id);
+  if (!item) return;
+  selectedId = id;
+  $('editCode').value = item.code;
+  $('editName').value = item.name;
+  $('editMemo').value = item.memo || '';
+  $('editError').textContent = '';
+  $('editDialog').showModal();
+}
+
+function saveEdit() {
+  const item = items.find(x => x.id === selectedId);
+  if (!item) return;
+  const code = $('editCode').value.trim();
+  const name = $('editName').value.trim();
+  $('editError').textContent = '';
+  if (!code || !name) {
+    $('editError').textContent = 'コードと商品名は必須です。';
+    return;
+  }
+  if (isDuplicate(code, selectedId)) {
+    $('editError').textContent = '同じコードがすでに登録されています。';
+    return;
+  }
+  item.code = code;
+  item.name = name;
+  item.memo = $('editMemo').value.trim();
+  item.updatedAt = new Date().toISOString();
+  saveItems();
+  render();
+  $('editDialog').close();
+}
+
+function deleteSelected() {
+  const item = items.find(x => x.id === selectedId);
+  if (!item) return;
+  if (!confirm(`「${item.name}」を削除しますか？`)) return;
+  items = items.filter(x => x.id !== selectedId);
+  saveItems();
+  render();
+  $('editDialog').close();
+}
+
+function convertSpokenNumber(text = '') {
+  const map = {
+    'ゼロ':'0','れい':'0','零':'0','いち':'1','一':'1','に':'2','二':'2','さん':'3','三':'3',
+    'よん':'4','し':'4','四':'4','ご':'5','五':'5','ろく':'6','六':'6','なな':'7','しち':'7','七':'7',
+    'はち':'8','八':'8','きゅう':'9','く':'9','九':'9'
+  };
+  let out = text.normalize('NFKC').toLowerCase();
+  Object.entries(map).sort((a,b) => b[0].length - a[0].length).forEach(([k,v]) => { out = out.split(k).join(v); });
+  out = out.replace(/マイナス/g, '-').replace(/ハイフン/g, '-').replace(/ダッシュ/g, '-');
+  return out.replace(/[\s、。,.・]/g, '').replace(/[^0-9A-Za-z._\-/]/g, '');
+}
+
+function setupSpeechRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    $('voiceCodeBtn').disabled = true;
+    $('voiceStatus').textContent = 'この端末のブラウザでは音声入力に対応していません。文字入力をご利用ください。';
+    return;
+  }
+  recognition = new SpeechRecognition();
+  recognition.lang = 'ja-JP';
+  recognition.interimResults = false;
+  recognition.continuous = false;
+  recognition.maxAlternatives = 3;
+
+  recognition.onstart = () => {
+    isListening = true;
+    $('voiceCodeBtn').textContent = '⏹ 聞き取り中';
+    $('voiceCodeBtn').classList.add('listening');
+    $('voiceStatus').textContent = '番号を1桁ずつ、ゆっくり話してください。';
+  };
+  recognition.onresult = event => {
+    const choices = [];
+    for (let i = 0; i < event.results[0].length; i++) choices.push(event.results[0][i].transcript);
+    const converted = choices.map(convertSpokenNumber).sort((a,b) => b.length - a.length)[0] || '';
+    if (converted) {
+      $('codeInput').value = converted;
+      $('voiceStatus').textContent = `認識結果：${converted}　目で確認して、違う場合は文字で直してください。`;
+      $('codeInput').focus();
+    } else {
+      $('voiceStatus').textContent = '番号を認識できませんでした。もう一度話すか、文字で入力してください。';
+    }
+  };
+  recognition.onerror = event => {
+    const messages = {
+      'not-allowed':'マイクの使用が許可されていません。Chromeのサイト設定でマイクを許可してください。',
+      'no-speech':'音声が聞き取れませんでした。もう一度お試しください。',
+      'network':'音声認識の通信に失敗しました。インターネット接続を確認してください。',
+      'audio-capture':'マイクを使用できませんでした。'
+    };
+    $('voiceStatus').textContent = messages[event.error] || `音声入力に失敗しました（${event.error}）。文字入力も利用できます。`;
+  };
+  recognition.onend = () => {
+    isListening = false;
+    $('voiceCodeBtn').textContent = '🎤 番号を話す';
+    $('voiceCodeBtn').classList.remove('listening');
+  };
+}
+
+function toggleVoice() {
+  if (!recognition) return;
+  try {
+    if (isListening) recognition.stop();
+    else recognition.start();
+  } catch {
+    $('voiceStatus').textContent = '少し待ってから、もう一度マイクボタンを押してください。';
+  }
+}
+
+function exportCsv() {
+  const rows = [['コード','商品名','メモ'], ...items.map(x => [x.code, x.name, x.memo || ''])];
+  const csv = '\ufeff' + rows.map(r => r.map(escapeCsv).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `code-memo-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+$('searchBtn').addEventListener('click', executeSearch);
+$('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); executeSearch(); } });
+$('showAllBtn').addEventListener('click', () => { $('searchInput').value = ''; activeSearchQuery = ''; render(); });
+$('clearSearchBtn').addEventListener('click', () => { $('searchInput').value = ''; activeSearchQuery = ''; render(); $('searchInput').focus(); });
+$('openAddBtn').addEventListener('click', openAdd);
+$('navAdd').addEventListener('click', openAdd);
+$('navSearch').addEventListener('click', () => { window.scrollTo({top:0,behavior:'smooth'}); $('searchInput').focus(); });
+$('navList').addEventListener('click', () => { $('searchInput').value = ''; activeSearchQuery = ''; render(); window.scrollTo({top:0,behavior:'smooth'}); });
+$('closeAddBtn').addEventListener('click', () => $('addDialog').close());
+$('closeConfirmBtn').addEventListener('click', backToEdit);
+$('closeEditBtn').addEventListener('click', () => $('editDialog').close());
+$('addForm').addEventListener('submit', e => { e.preventDefault(); prepareConfirmation(); });
+$('confirmRegisterBtn').addEventListener('click', registerPending);
+$('backToEditBtn').addEventListener('click', backToEdit);
+$('voiceCodeBtn').addEventListener('click', toggleVoice);
+$('saveEditBtn').addEventListener('click', saveEdit);
+$('deleteBtn').addEventListener('click', deleteSelected);
+$('exportBtn').addEventListener('click', exportCsv);
+
+setupSpeechRecognition();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+render();

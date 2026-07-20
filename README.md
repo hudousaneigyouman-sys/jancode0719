@@ -1,18 +1,5 @@
-# コードメモ v4
-
-## 主な機能
-- コードと自由な商品名で登録
-- 1文字以上入力して検索ボタンを押すと一覧表示
-- バーコードカメラ読取
-- 「撮影で追加」からメモ帳をその場で撮影し、自動OCR
-- OCR結果を確認・修正して一括登録
-- 既存写真ファイルからの取り込みは非対応
-- CSVバックアップ
-
-## メモ撮影のコツ
-- 1商品を1行にする
-- 「コード 商品名」の順で書く
-- 明るい場所で真上から撮影する
-- 文字が小さすぎないよう、メモ全体が画面いっぱいになるよう撮影する
-
-手書き文字は誤認識することがあるため、候補一覧を確認してから登録してください。
+const CACHE='code-memo-v5';
+const FILES=['./','./index.html','./styles.css','./app.js','./manifest.json'];
+self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)))});
+self.addEventListener('activate',e=>e.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))])));
+self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return r}).catch(()=>caches.match(e.request))));
