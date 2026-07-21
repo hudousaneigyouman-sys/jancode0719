@@ -116,9 +116,9 @@
         <button id="closeBackupBtn" class="close-btn" type="button">閉じる</button>
       </div>
       <div class="backup-box">
-        <strong>バックアップを保存</strong>
-        <p class="backup-note">登録データをバックアップファイルとしてスマホに保存します。機種変更やサイトデータ削除に備えられます。</p>
-        <button id="downloadBackupBtn" class="btn btn-primary btn-wide" type="button">バックアップファイルを保存</button>
+        <strong>同じファイルへバックアップ</strong>
+        <p class="backup-note">ファイル名は常に「code-memo-backup.json」です。最初に保存先を選び、同名ファイルがある場合は置き換えてください。同じ画面を開いている間は、次回から同じファイルへ上書きします。</p>
+        <button id="downloadBackupBtn" class="btn btn-primary btn-wide" type="button">バックアップを保存・上書き</button>
       </div>
       <div class="backup-box">
         <strong>端末内の最新バックアップ</strong>
@@ -131,7 +131,7 @@
         <button id="restoreFileBtn" class="btn btn-sub btn-wide" type="button">バックアップファイルを選ぶ</button>
         <input id="restoreFileInput" type="file" accept="application/json,.json" hidden>
       </div>
-      <p class="backup-note">注意：Chromeのサイトデータを削除すると、端末内バックアップも消えます。確実に残すには「バックアップファイルを保存」を使用してください。</p>
+      <p class="backup-note">注意：ブラウザの安全上、初回またはアプリを開き直した後は保存先の確認が必要です。Chromeのサイトデータを削除すると端末内バックアップも消えるため、ファイルへの保存も併用してください。</p>
     </section>
   </div>
 
@@ -417,21 +417,36 @@
     render();
     showToast('削除しました。');
   }
-  function downloadBackup() {
+  var backupFileHandle = null;
+  async function downloadBackup() {
     var data = makeBackupData();
     try { localStorage.setItem(BACKUP_KEY, JSON.stringify(data)); } catch (e) {}
     updateBackupInfo();
-    var json = JSON.stringify(data, null, 2);
-    var blob = new Blob([json], { type: 'application/json;charset=utf-8' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'code-memo-backup-' + new Date().toISOString().slice(0,10) + '.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-    showToast('バックアップを保存しました。');
+
+    if (!window.showSaveFilePicker) {
+      showToast('端末内バックアップは更新しました。ファイル上書きはChromeで開いて実行してください。');
+      return;
+    }
+
+    try {
+      if (!backupFileHandle) {
+        backupFileHandle = await window.showSaveFilePicker({
+          suggestedName: 'code-memo-backup.json',
+          types: [{ description: 'コードメモ バックアップ', accept: { 'application/json': ['.json'] } }]
+        });
+      }
+      var writable = await backupFileHandle.createWritable();
+      await writable.write(JSON.stringify(data, null, 2));
+      await writable.close();
+      showToast('同じバックアップファイルへ保存しました。');
+    } catch (e) {
+      if (e && e.name === 'AbortError') {
+        showToast('保存をキャンセルしました。端末内バックアップは更新済みです。');
+      } else {
+        backupFileHandle = null;
+        showToast('ファイル保存に失敗しました。Chromeで開いて再度お試しください。');
+      }
+    }
   }
   function applyRestore(data, sourceLabel) {
     if (!data || !Array.isArray(data.items)) { showToast('正しいバックアップではありません。'); return; }
